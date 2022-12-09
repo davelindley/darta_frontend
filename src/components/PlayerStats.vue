@@ -1,12 +1,10 @@
 <template>
-<div>
-  Hello Game
-</div>
+$END$
 </template>
 
 <script>
 export default {
-  name: "GamePlay"
+name: "PlayerStats"
 }
 </script>
 
