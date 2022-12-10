@@ -1,52 +1,35 @@
 <template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
-    <h2>Create Players</h2>
-    <div>
-      <form @submit.prevent="create_player">
-        <input type="text" v-model="player_name" placeholder="Enter your name">
-        <input type="submit" value="Create Player">
-      </form>
-
-        <div v-if="current_game">
-          <p>Game Format: {{ current_game }}</p>
-        </div>
-
-        <div v-else>
-          <form @submit.prevent="start_game">
-          <div>
-            <h2>Game Format</h2>
-            <select v-model="selected_type" aria-label="Game Type">
-              <option v-for="(format, key) in game_types" :key="key">
-                {{ format }}
-              </option>
-            </select>
-          </div>
-          <select v-model="selected_players" multiple>
-            <option v-for="player in players" :value="player.id" v-bind:key="player.id">{{ player.name }}</option>
-          </select>
-          <input type="submit" value="Start Game">
-        </form>
-    </div>
-</div>
-
-
-
+  <div >
+<br>
     <!--    Table showing all players with an option to add to game -->
-    Players: {{ selected_players }}
+    Players: {{ player_cache }}
+    <br>
     Turn: {{ turn }}
-
+    <br>
+    Winner: {{ check_winner }}
     <!--    Input score on dart game -->
-    <div v-if="current_game">
+    <div v-if="game_cache">
       <h2>Score</h2>
       {{ current_player.name }}'s turn
       <form @submit.prevent="throw_dart">
-        <input type="number" v-model="dart.score" placeholder="Enter your score">
-        <input type="number" v-model="dart.multiplier" placeholder="Enter your multiplier">
+        <select v-model="dart.score" placeholder="Enter your score">
+          <option value=20>20</option>
+          <option value=19>19</option>
+          <option value=18>18</option>
+          <option value=17>17</option>
+          <option value=16>16</option>
+          <option value=15>15</option>
+          <option value=B>14</option>
+        </select>
+        <select v-model="dart.multiplier" placeholder="Enter your multiplier">
+          <option value=1>1</option>
+          <option value=2>2</option>
+          <option value=3>3</option>
+        </select>
         <input type="submit" value="Add Score">
       </form>
     </div>
-
+{{ score_board }}
 <!--    Table showing all darts from this game -->
     <table>
       <thead>
@@ -65,6 +48,7 @@
       </tbody>
     </table>
   </div>
+
 </template>
 
 <script>
@@ -72,78 +56,88 @@ import axios from 'axios';
 
 export default {
   name: 'HelloWorld',
+  components: {},
   props: {
     msg: String
   },
   data() {
     return {
-      player_name: '',
+      // player_name: '',
+      round_num: 1,
       game_types: {
         '1': 'Cricket',
         '2': '301',
         '3': '501'
       },
+      cricket_darts: {
+        '1': '20',
+        '2': '19',
+        '3': '18',
+        '4': '17',
+        '5': '16',
+        '6': '15',
+        '7': 'Bull'
+      },
+      dialog: true,
       selected_type: null,
-      players: [],
-      selected_players: [],
-      current_game: null,
+      friends_cache: [],
+      player_cache: [],
+      game: null,
       dart_cache: [],
       turn: 0,
+      round: [],
       dart: {
-        score: 0,
-        multiplier: 0,
+        score: null,
+        multiplier: null
       },
-    }
-  },
-  computed: {
-    game_type: function () {
-      return this.game_types[this.selected_type];
-    },
-    current_player: function () {
-      // let round = this.turn % this.selected_players.length;
-      let player_id = this.selected_players[Math.floor(this.turn / 3) % this.selected_players.length];
-      return this.players.find(player => player.id === player_id);
-    }
 
+    }
   },
-  created() {
-    this.get_players();
+  current_player: function () {
+    let player_id = this.player_cache[Math.floor(this.turn / 3) % this.player_cache.length];
+    return this.friends_cache.find(player => player.id === player_id);
   },
+  score_board() {
+    let score_board = {};
+    for (let player_id of this.player_cache) {
+      score_board[player_id] = {};
+      for (let dart of this.dart_cache) {
+        if (dart.player === player_id) {
+          if (score_board[player_id][dart.score]) {
+            score_board[player_id][dart.score] += dart.multiplier;
+          } else {
+            score_board[player_id][dart.score] = dart.multiplier;
+          }
+          if (score_board[player_id][dart.score] >= 3) {
+            score_board[player_id][dart.score] = 3;
+          }
+        }
+      }
+    }
+    return score_board;
+  },
+  check_winner() {
+    let winner = null;
+    for (let player_id of this.player_cache) {
+      //sum all values for player id in scoreboard
+      let sum = Object.values(this.score_board[player_id]).reduce((a, b) => a + b, 0);
+      if (sum === 21) {
+        winner = player_id;
+      }
+    }
+    return winner;
+  }
+  ,
+  mounted() {
+   this.$root.$
+  },
+
+
 
   methods: {
-    get_players() {
-      axios.get('http://localhost:8000/players')
-          .then(response => {
-            this.players = response.data;
-          })
-          .catch(error => {
-            console.log(error);
-          })
-    },
-    create_player: function () {
-      axios.post('http://localhost:8000/player', {name: this.player_name})
-          .then(response => {
-            this.players.push(response.data);
-          })
-          .catch(error => {
-            console.log(error);
-          })
-    },
-    start_game: function () {
-      axios.post('http://localhost:8000/game', {players: this.selected_players, format: this.selected_type})
-          .then(response => {
-            console.log(response);
-            this.current_game = response.data;
-          })
-          .catch(error => {
-            console.log('THIS IS AN ERROR');
-            console.log(error);
-          });
-    },
     throw_dart: function () {
-      axios.post('http://localhost:8000/dart', {score: this.dart.score, multiplier: this.dart.multiplier, player_id: this.current_player.id, game_id: this.current_game.id})
+      axios.post('http://localhost:8000/dart', {score: this.dart.score, multiplier: this.dart.multiplier, player_id: this.current_player.id, game_id: this.game_cache.id})
           .then(response => {
-            // this.dart_history.push(response.data);
             console.log(response);
             this.get_darts();
             this.turn++;
@@ -151,10 +145,19 @@ export default {
           .catch(error => {
             console.log(error);
           })
-    },
-    get_darts: function () {
-      axios.get('http://localhost:8000/dart/' + this.current_game.id)
+    }
+    //TODO listen for the lockLobby event on the bus.
+    // lockGame: function () {
+    //   this.$root.$on('lockLobby', (game) => {
+    //     this.game = game;
+    //     this.player_cache = game.players;
+    //     this.round_num = game.round_num;
+    //
+    //   });
 
+    ,
+    get_darts: function () {
+      axios.get('http://localhost:8000/dart/' + this.game_cache.id)
           .then(response => {
             this.dart_cache = response.data;
           })
@@ -162,8 +165,7 @@ export default {
             console.log(error);
           })
     }
-  }
-}
+}}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
