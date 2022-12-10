@@ -99,17 +99,17 @@ export default {
   },
   score_board() {
     let score_board = {};
-    for (let player_id of this.player_cache) {
-      score_board[player_id] = {};
-      for (let dart of this.dart_cache) {
-        if (dart.player === player_id) {
-          if (score_board[player_id][dart.score]) {
-            score_board[player_id][dart.score] += dart.multiplier;
+    for (let player of this.player_cache) {
+      score_board[player.id] = {};
+      for (let dart of this.dart.cache) {
+        if (dart.player === player.id) {
+          if (score_board[player][dart.score]) {
+            score_board[player][dart.score] += dart.multiplier;
           } else {
-            score_board[player_id][dart.score] = dart.multiplier;
+            score_board[player][dart.score] = dart.multiplier;
           }
-          if (score_board[player_id][dart.score] >= 3) {
-            score_board[player_id][dart.score] = 3;
+          if (score_board[player][dart.score] >= 3) {
+            score_board[player][dart.score] = 3;
           }
         }
       }
